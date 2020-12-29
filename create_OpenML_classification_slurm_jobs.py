@@ -29,7 +29,7 @@ for d in datasets:
             if not i.isdigit():
                 raise ValueError(f'Not a well-formed dataset name: {d}')
             dataset_id = int(i)
-            batch = f'OpenML_classification_{framework}_d{dataset_id}_n{args.njobs}.slurm'
+            batch = f'OpenML_classification_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}.slurm'
             batches.append(batch)
             with open(slurm_jobs / batch, 'w') as f:
                 f.write(f'''#!/bin/bash
@@ -50,7 +50,7 @@ echo "### Starting Script"
 cd {Config.PROJECT_ROOT}
 module load Python/3.8.2-GCCcore-9.3.0
 source venv/bin/activate
-python run_one_test.py --collection {args.collection} --framework {framework} --dataset_id {dataset_id} --runtime {runtime} --njobs {args.njobs} --quiet
+python run_one_test.py --collection {args.collection} --framework {framework} --dataset_id {dataset_id} --runtime_limit {runtime} --njobs {args.njobs} --quiet
 echo "### Finished Script. Have a nice day."''')
 
 
