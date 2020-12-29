@@ -34,7 +34,7 @@ for d in datasets:
             with open(slurm_jobs / batch, 'w') as f:
                 f.write(f'''#!/bin/bash
 
-#SBATCH --job-name=bench_{framework}_d{dataset_id}_n{args.njobs}
+#SBATCH --job-name=bench_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}
 #SBATCH --output={str(slurm_output)}/%x_%j.out
 #SBATCH --error={str(slurm_output)}/%x_%j.err
 #SBATCH --mail-user="{Config.SLURM_EMAIL}"
