@@ -1,0 +1,6 @@
+venv
+.idea
+*dataset*.csv
+experiment_config.py
+*errors.txt
+*finished.txt
