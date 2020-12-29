@@ -4,3 +4,4 @@ venv
 experiment_config.py
 *errors.txt
 *finished.txt
+fetch_datasets.slurm
