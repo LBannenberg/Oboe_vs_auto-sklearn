@@ -4,6 +4,8 @@ import csv
 import sys
 from pathlib import Path
 
+import warnings
+
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -65,6 +67,7 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
     parser.add_argument('--RANDOMSTATE', type=int, default=0, help='random state')
     parser.add_argument('-n', '--njobs', type=int, default=1, help='number of parallel jobs for this task')
     parser.add_argument('-k', '--kfolds', type=int, default=5, help='k for k-fold cross validation')
+    parser.add_argument('-q', '--quiet', action='store_true', help='run extra quiet')
     args = parser.parse_args()
 
     # Get input handles
@@ -87,6 +90,8 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
     log_file = results_dir / 'finished.txt'
 
     # Track things that go wrong
+    if args.quiet:
+        warnings.simplefilter("ignore")
     error_file = results_dir / 'errors.txt'
     dataset_error_count = 0
     dataset_errors = []
@@ -96,8 +101,11 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
     test_error = []
     time_elapsed = []
     kf = StratifiedKFold(args.kfolds, shuffle=True, random_state=args.RANDOMSTATE)
+    folds = 0
     try:
         for train_idx, test_idx in kf.split(x, y):
+            folds += 1
+            print(f'Fold {folds}/{args.kfolds}')
             x_train = x[train_idx, :]
             y_train = y[train_idx]
             x_test = x[test_idx, :]
@@ -141,6 +149,7 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
             test_error.append(error(y_test, y_test_pred, 'classification'))
 
         # Reformat the output
+        print('Folds finished, writing results.')
         training_error = np.array(training_error)
         test_error = np.array(test_error)
 
