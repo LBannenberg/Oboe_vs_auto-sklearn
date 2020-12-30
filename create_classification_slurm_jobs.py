@@ -3,6 +3,13 @@ import argparse
 import time
 from experiment_config import Config
 
+MAX_JOBS_PER_ENQUEUE = 50
+FRAMEWORKS = ['auto-sklearn', 'Oboe']
+jobs_per_dataset = len(Config.RUNTIMES) * len(FRAMEWORKS)
+datasets_per_enqueue = MAX_JOBS_PER_ENQUEUE // jobs_per_dataset
+jobs_per_enqueue = datasets_per_enqueue * jobs_per_dataset
+print(f'jpd {jobs_per_dataset}, dpe {datasets_per_enqueue}, jpe {jobs_per_enqueue}')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--collection', type=str, required=True, help='Collection of datasets')
 parser.add_argument('-n', '--njobs', default=1, type=int, help='Number of cores to use')
@@ -12,7 +19,7 @@ args = parser.parse_args()
 
 # Collect datasets
 in_dir = Path(Config.DATASETS).expanduser() / args.collection
-datasets = [d for d in in_dir.iterdir() if d.is_file() and d.suffix == '.csv']
+datasets = sorted([d for d in in_dir.iterdir() if d.is_file() and d.suffix == '.csv'])
 
 # Define the target directory
 slurm_jobs = Path(Config.SLURM_JOBS).expanduser()
@@ -20,7 +27,7 @@ slurm_output = Path(Config.SLURM_OUTPUT).expanduser()
 
 batches = []
 for d in datasets:
-    for framework in ['auto-sklearn', 'Oboe']:
+    for framework in FRAMEWORKS:
         for runtime in Config.RUNTIMES:
             total_script_time = runtime * args.kfolds * 2
             formatted_time = time.strftime('%H:%M:%S', time.gmtime(total_script_time))
@@ -52,8 +59,10 @@ source venv/bin/activate
 python run_one_test.py --collection {args.collection} --framework {framework} --dataset_id {dataset_id} --runtime_limit {runtime} --njobs {args.njobs} --quiet
 echo "### Finished Script. Have a nice day."''')
 
-
-with open(slurm_jobs / f'enqueue_{args.collection}_njobs_{args.njobs}.sh', 'w') as f:
-    f.write('#!/bin/bash\n\n')
-    for batch in batches:
-        f.write(f'sbatch {str(slurm_jobs / batch)}\n')
+for e, i in enumerate(range(0, len(batches), jobs_per_enqueue)):
+    with open(slurm_jobs / f'enqueue_{args.collection}_njobs_{args.njobs}_part_{e}.sh', 'w') as f:
+        f.write('#!/bin/bash\n\n')
+        for j in range(jobs_per_enqueue):
+            if i+j >= len(batches):
+                break
+            f.write(f'sbatch {str(slurm_jobs / batches[i+j])}\n')

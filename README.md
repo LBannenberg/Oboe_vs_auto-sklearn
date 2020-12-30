@@ -69,7 +69,7 @@ Datasets will be fetched, then preprocessed by one-hot encoding of categorical v
 ### Slurm jobs
 We performed our experiments on the ALICE server of Leiden University, which uses Slurm as a scheduler. Use of the Slurm jobs is not required but makes large experiments easier. This code could be adapted to other high performance systems as needed without having to change the underlying scripts.
 
-Basic usage is as follows: run `create_classification_slurm_jobs` specifying a collection to prepare jobs for, then run `enqueue_COLLECTION_njobs_N.sh` to submit the jobs to Slurm. The following parameters are available:
+Basic usage is as follows: run `create_classification_slurm_jobs` specifying a collection to prepare jobs for, then run `enqueue_COLLECTION_njobs_N_part_XXX.sh` to submit the jobs to Slurm. The following parameters are available:
 
 * `-c`, `--collection`: **required** Name of the collection to prepare a batch for. 
 * `-n`, `--njobs`: number of cores to use per job, default is 1.
@@ -80,7 +80,7 @@ One job will be generated for every combination of (framework, dataset, runtime)
 
 Expected overall runtime for each dataset job is estimated as `k * r * 2`, where `k` is the number of folds and `r`1 is the runtime budget for the framework inside one fold. For example, with `k=5` the job for dataset 3 with runtime budget 32 is estimated to take 5 * 32 * 2 = 320 seconds.
 
-Calling the *enqueue* bash script submits all these jobs to the Slurm scheduler at once, but each with a reasonable estimate of maximum runtime. By keeping all the jobs relatively small, we allow the scheduler to efficiently allocate resources.
+Calling the *enqueue* bash scripts submits these jobs to the Slurm scheduler, each with a reasonable estimate of maximum runtime. By keeping all the jobs relatively small, we allow the scheduler to efficiently allocate resources. We cannot submit *all* the jobs at once, to comply with the scheduler's maximum submission guidelines, therefore we submit them in parts of no more than 50 jobs at a time.
 
 ### Plotting
 
