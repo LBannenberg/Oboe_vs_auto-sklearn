@@ -14,6 +14,6 @@
 echo "### Starting Script"
 cd /home/username/PythonProjects/Oboe_vs_auto-sklearn
 module load Python/3.8.2-GCCcore-9.3.0
-source ../venv/bin/activate
+source venv/bin/activate
 python fetch_preprocess_datasets.py --first75
 echo "### Finished Script. Have a nice day."
