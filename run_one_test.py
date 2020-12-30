@@ -61,7 +61,7 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
     # Get run parameters
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--framework', required=True, type=str, choices=['auto-sklearn', 'Oboe'])
-    parser.add_argument('-c', '--collection', required=True, type=str, choices=['OpenML_classification'], help='Collection of datasets')
+    parser.add_argument('-c', '--collection', required=True, type=str, help='Collection of datasets')
     parser.add_argument('-d', '--dataset_id', required=True, type=int, help='Dataset ID')
     parser.add_argument('-r', '--runtime_limit', required=True, type=int, help='Runtime limit (s)')
     parser.add_argument('--RANDOMSTATE', type=int, default=0, help='random state')
