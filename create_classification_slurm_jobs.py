@@ -4,10 +4,10 @@ import time
 from experiment_config import Config
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--collection', type=str, required=True, help='Collection of datasets')
 parser.add_argument('-n', '--njobs', default=1, type=int, help='Number of cores to use')
 parser.add_argument('-m', '--memory_per_core', default=10, type=int, help='Amount of memory to request per core in GB.')
 parser.add_argument('-k', '--kfolds', type=int, default=5, help='Number of folds for k-fold cross validation')
-parser.add_argument('-c', '--collection', type=str, default='OpenML_classification', help='Collection of datasets')
 args = parser.parse_args()
 
 # Collect datasets
@@ -15,7 +15,6 @@ in_dir = Path(Config.DATASETS).expanduser() / args.collection
 datasets = [d for d in in_dir.iterdir() if d.is_file() and d.suffix == '.csv']
 
 # Define the target directory
-out_dir = Path(Config.RESULTS).expanduser() / 'OpenML_classification' / 'autosklearn' / f'njobs_{args.njobs}'
 slurm_jobs = Path(Config.SLURM_JOBS).expanduser()
 slurm_output = Path(Config.SLURM_OUTPUT).expanduser()
 
@@ -29,7 +28,7 @@ for d in datasets:
             if not i.isdigit():
                 raise ValueError(f'Not a well-formed dataset name: {d}')
             dataset_id = int(i)
-            batch = f'OpenML_classification_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}.slurm'
+            batch = f'{args.collection}_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}.slurm'
             batches.append(batch)
             with open(slurm_jobs / batch, 'w') as f:
                 f.write(f'''#!/bin/bash
@@ -54,7 +53,7 @@ python run_one_test.py --collection {args.collection} --framework {framework} --
 echo "### Finished Script. Have a nice day."''')
 
 
-with open(slurm_jobs / f'enqueue_OpenML_classification_njobs_{args.njobs}.sh', 'w') as f:
+with open(slurm_jobs / f'enqueue_{args.collection}_njobs_{args.njobs}.sh', 'w') as f:
     f.write('#!/bin/bash\n\n')
     for batch in batches:
         f.write(f'sbatch {str(slurm_jobs / batch)}\n')

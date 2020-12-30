@@ -11,15 +11,16 @@ from sklearn.impute import SimpleImputer as Imputer
 from experiment_config import Config
 
 parser = argparse.ArgumentParser(description='Fetch one of the selected datasets')
-method = parser.add_mutually_exclusive_group(required=True)
+parser.add_argument('-c', '--collection', type=str, default='OpenML_classification', help='Which dataset collection to put this in?')
+method = parser.add_mutually_exclusive_group(required=True)  # Specify selection:
 method.add_argument('-i', '--individual', type=int, default=0, help='Specify the id of a single dataset to preprocess.')
 method.add_argument('-f75', '--first75', action='store_true', help='Use the first 75 (manually noted) qualifying sets.')
-method.add_argument('-s', '--selection', action='store_true', help='use the selection in the file.')
+method.add_argument('-s', '--selection', type=str, default='', help='Use the selection found in the .csv file.')
 args = parser.parse_args()
 
 dataset_dir = Path(Config.DATASETS).resolve()
-OpenML_dir = dataset_dir / 'OpenML_classification'
-OpenML_dir.mkdir(parents=True, exist_ok=True)
+collection_dir = dataset_dir / args.collection
+collection_dir.mkdir(parents=True, exist_ok=True)
 
 if args.individual:
     selected_datasets = [args.individual]
@@ -31,8 +32,8 @@ elif args.first75:
                          396, 397, 398, 400, 401, 446, 450, 458, 463, 464, 469, 475, 679, 694, 715, 717, 718, 720]
     # Problematic, therefore left out: 312, 316, 373, 390
     # Numerical issues: 383, 384, 385, 386, 387, 388, 389, 391, 392, 393, 394, 395, 396, 397, 398, 400, 401
-elif args.selection:
-    selected_datasets = dataset_dir / 'selected_OpenML_classification_dataset_indices.csv'
+elif args.selection != '':
+    selected_datasets = dataset_dir / args.selection
     selected_datasets = pd.read_csv(selected_datasets, index_col=None, header=None).values.T[0]
 else:
     selected_datasets = []
@@ -115,7 +116,7 @@ for dataset_id in selected_datasets:
         # and the last column being labels
         data = np.append(data_numeric, np.array(data_labels, ndmin=2).T, axis=1)
 
-        destination = OpenML_dir / f'dataset_{dataset_id}_features_and_labels.csv'
+        destination = collection_dir / f'dataset_{dataset_id}_features_and_labels.csv'
         pd.DataFrame(data, index=None, columns=None).to_csv(destination, header=False, index=False)
         print(f'dataset {dataset_id} finished')
     except Exception as e:
