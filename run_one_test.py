@@ -24,13 +24,12 @@ ASKL_ESTIMATORS = ["adaboost", "gaussian_nb", "extra_trees", "gradient_boosting"
 # Load Oboe
 sys.path.append(Config.OBOE)
 from auto_learner import AutoLearner as OboeLearner
-
 OBOE_ESTIMATORS = ['AB', 'GNB', 'ExtraTrees', 'GBT', 'lSVM', 'kSVM', 'RF', 'KNN', 'DT']
-default_error_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'error_matrix.csv', index_col=0)
-default_runtime_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'runtime_matrix.csv', index_col=0)
-columns = [i for i in range(default_error_matrix.shape[1]) if eval(default_error_matrix.columns[i])['algorithm'] in OBOE_ESTIMATORS]
-default_error_matrix = default_error_matrix.iloc[:, columns]
-default_runtime_matrix = default_runtime_matrix.iloc[:, columns]
+oboe_error_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'error_matrix.csv', index_col=0)
+oboe_runtime_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'runtime_matrix.csv', index_col=0)
+columns = [i for i in range(oboe_error_matrix.shape[1]) if eval(oboe_error_matrix.columns[i])['algorithm'] in OBOE_ESTIMATORS]
+oboe_error_matrix = oboe_error_matrix.iloc[:, columns]
+oboe_runtime_matrix = oboe_runtime_matrix.iloc[:, columns]
 
 
 def error(y_true, y_predicted, p_type):
@@ -88,6 +87,13 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
     x = dataset.iloc[:, :-1].values
     y = LabelEncoder().fit_transform(dataset.iloc[:, -1])
 
+    # Exclude the current dataset from the learned error/runtime matrices,
+    # assuming it was in there to begin with
+    if args.framework == 'Oboe' and args.dataset_id in oboe_error_matrix.columns:
+        oboe_error_matrix = oboe_error_matrix.drop(args.daset_id)
+    if args.framework == 'Oboe' and args.dataset_id in oboe_runtime_matrix.columns:
+        oboe_runtime_matrix = oboe_runtime_matrix.drop(args.daset_id)
+
     # Get output handles
     results_dir = Path(Config.RESULTS).expanduser() / args.collection / args.framework / f'njobs_{args.njobs}'
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -134,23 +140,14 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
                 clf.refit(x_train, y_train)
                 time_elapsed.append(time.time() - start)  # Lau: TODO how to treat the time spent on refitting?
             elif args.framework == 'Oboe':
-                # Exclude the current dataset from the learned error/runtime matrices,
-                # assuming it was in there to begin with
-                try:
-                    error_matrix = default_error_matrix.copy().drop(args.dataset_id)
-                    runtime_matrix = default_runtime_matrix.copy().drop(args.dataset_id)
-                except ValueError:
-                    error_matrix = default_error_matrix.copy()
-                    runtime_matrix = default_runtime_matrix.copy()
-
                 start = time.time()
                 clf = OboeLearner(
                     p_type='classification',
                     runtime_limit=args.runtime_limit,
                     verbose=False,
                     algorithms=OBOE_ESTIMATORS,
-                    error_matrix=error_matrix,
-                    runtime_matrix=runtime_matrix,
+                    error_matrix=oboe_error_matrix,
+                    runtime_matrix=oboe_runtime_matrix,
                     selection_method='min_variance',
                     stacking_alg='greedy',
                     n_cores=args.njobs
