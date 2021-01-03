@@ -5,10 +5,6 @@ from experiment_config import Config
 
 MAX_JOBS_PER_ENQUEUE = 50
 FRAMEWORKS = ['auto-sklearn', 'Oboe']
-jobs_per_dataset = len(Config.RUNTIMES) * len(FRAMEWORKS)
-datasets_per_enqueue = MAX_JOBS_PER_ENQUEUE // jobs_per_dataset
-jobs_per_enqueue = datasets_per_enqueue * jobs_per_dataset
-print(f'jobs per dataset {jobs_per_dataset}\ndatasets per enqueue {datasets_per_enqueue}\njobs per enqueue {jobs_per_enqueue}')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--collection', type=str, required=True, help='Collection of datasets')
@@ -68,10 +64,10 @@ source venv/bin/activate
 {tasks_in_batch}
 echo "### Finished Script. Have a nice day."''')
 
-for e, i in enumerate(range(0, len(batches), jobs_per_enqueue)):
+for e, i in enumerate(range(0, len(batches), MAX_JOBS_PER_ENQUEUE)):
     with open(slurm_jobs / f'enqueue_{args.collection}_njobs_{args.njobs}_part_{e}.sh', 'w') as f:
         f.write('#!/bin/bash\n\n')
-        for j in range(jobs_per_enqueue):
+        for j in range(MAX_JOBS_PER_ENQUEUE):
             if i+j >= len(batches):
                 break
             f.write(f'sbatch {str(slurm_jobs / batches[i+j])}\n')
