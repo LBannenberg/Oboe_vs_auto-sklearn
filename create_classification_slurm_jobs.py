@@ -8,7 +8,7 @@ FRAMEWORKS = ['auto-sklearn', 'Oboe']
 jobs_per_dataset = len(Config.RUNTIMES) * len(FRAMEWORKS)
 datasets_per_enqueue = MAX_JOBS_PER_ENQUEUE // jobs_per_dataset
 jobs_per_enqueue = datasets_per_enqueue * jobs_per_dataset
-print(f'jpd {jobs_per_dataset}, dpe {datasets_per_enqueue}, jpe {jobs_per_enqueue}')
+print(f'jobs per dataset {jobs_per_dataset}\ndatasets per enqueue {datasets_per_enqueue}\njobs per enqueue {jobs_per_enqueue}')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--collection', type=str, required=True, help='Collection of datasets')
