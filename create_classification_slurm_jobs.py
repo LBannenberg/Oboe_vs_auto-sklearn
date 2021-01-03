@@ -27,18 +27,23 @@ slurm_output = Path(Config.SLURM_OUTPUT).expanduser()
 
 batches = []
 for d in datasets:
+    i = d.stem.split('_')[1]
+    dataset_id = int(i)
+    if not i.isdigit():
+        raise ValueError(f'Not a well-formed dataset name: {d}')
+    total_script_time = sum(Config.RUNTIMES) * args.kfolds * 2
+    formatted_time = time.strftime('%H:%M:%S', time.gmtime(total_script_time))
     for framework in FRAMEWORKS:
+        batch = f'{args.collection}_{framework}_d{dataset_id}_n{args.njobs}.slurm'
+        batches.append(batch)
+        tasks_in_batch = []
         for runtime in Config.RUNTIMES:
-            total_script_time = runtime * args.kfolds * 2
-            formatted_time = time.strftime('%H:%M:%S', time.gmtime(total_script_time))
-            i = d.stem.split('_')[1]
-            if not i.isdigit():
-                raise ValueError(f'Not a well-formed dataset name: {d}')
-            dataset_id = int(i)
-            batch = f'{args.collection}_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}.slurm'
-            batches.append(batch)
-            with open(slurm_jobs / batch, 'w') as f:
-                f.write(f'''#!/bin/bash
+            task = f'python run_one_test.py --collection {args.collection} --framework {framework} ' \
+                   f'--dataset_id {dataset_id} --runtime_limit {runtime} --njobs {args.njobs} --quiet'
+            tasks_in_batch.append(task)
+        tasks_in_batch = '\n'.join(tasks_in_batch)
+        with open(slurm_jobs / batch, 'w') as f:
+            f.write(f'''#!/bin/bash
 
 #SBATCH --job-name=bench_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}
 #SBATCH --output={str(slurm_output)}/%x_%j.out
@@ -56,7 +61,7 @@ echo "### Starting Script"
 cd {Config.PROJECT_ROOT}
 module load Python/3.8.2-GCCcore-9.3.0
 source venv/bin/activate
-python run_one_test.py --collection {args.collection} --framework {framework} --dataset_id {dataset_id} --runtime_limit {runtime} --njobs {args.njobs} --quiet
+{tasks_in_batch}
 echo "### Finished Script. Have a nice day."''')
 
 for e, i in enumerate(range(0, len(batches), jobs_per_enqueue)):
