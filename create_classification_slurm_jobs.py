@@ -25,19 +25,23 @@ datasets = sorted([d for d in in_dir.iterdir() if d.is_file() and d.suffix == '.
 slurm_jobs = Path(Config.SLURM_JOBS).expanduser()
 slurm_output = Path(Config.SLURM_OUTPUT).expanduser()
 
+
 batches = []
 for d in datasets:
     i = d.stem.split('_')[1]
     dataset_id = int(i)
     if not i.isdigit():
         raise ValueError(f'Not a well-formed dataset name: {d}')
-    total_script_time = sum(Config.RUNTIMES) * args.kfolds * 2
-    formatted_time = time.strftime('%H:%M:%S', time.gmtime(total_script_time))
     for framework in FRAMEWORKS:
+        runtimes = Config.RUNTIMES
+        if framework == 'auto-sklearn':
+            runtimes = [r for r in runtimes if r >= 30]  # This is a hardcoded lower limit in auto-sklearn
+        total_script_time = sum(runtimes) * args.kfolds * 2
+        formatted_time = time.strftime('%H:%M:%S', time.gmtime(total_script_time))
         batch = f'{args.collection}_{framework}_d{dataset_id}_n{args.njobs}.slurm'
         batches.append(batch)
         tasks_in_batch = []
-        for runtime in Config.RUNTIMES:
+        for runtime in runtimes:
             task = f'python run_one_test.py --collection {args.collection} --framework {framework} ' \
                    f'--dataset_id {dataset_id} --runtime_limit {runtime} --njobs {args.njobs} --quiet'
             tasks_in_batch.append(task)
@@ -45,7 +49,7 @@ for d in datasets:
         with open(slurm_jobs / batch, 'w') as f:
             f.write(f'''#!/bin/bash
 
-#SBATCH --job-name=bench_{framework}_d{dataset_id}_n{args.njobs}_r{runtime}
+#SBATCH --job-name=bench_d{dataset_id}_{framework}_n{args.njobs}
 #SBATCH --output={str(slurm_output)}/%x_%j.out
 #SBATCH --error={str(slurm_output)}/%x_%j.err
 #SBATCH --mail-user="{Config.SLURM_EMAIL}"
