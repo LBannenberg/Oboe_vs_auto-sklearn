@@ -200,7 +200,8 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
         writer.writerow(results)  # write the actual results
 
     with open(log_file, 'a') as log:
-        log.write(f'dataset No.\t{args.dataset_id}\t finished with {dataset_error_count} errors.\n')
+        log.write(f'dataset No. {args.dataset_id}\twith runtime {args.runtime_limit}'
+                  f'\tfinished with {dataset_error_count} errors.\n')
     with open(error_file, 'a') as failure_output:
         for failure in dataset_errors:
             failure_output.write(failure)
