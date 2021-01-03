@@ -9,7 +9,7 @@ class Config:
 
     # Slurm
     SLURM_EMAIL = 'my.email@example.com'
-    SLURM_JOBS = '/home/username/PythonProjects/Oboe_vs_auto-sklearn/slurm_jobs'
-    SLURM_OUTPUT = '/home/username/PythonProjects/Oboe_vs_auto-sklearn/slurm_output'
+    SLURM_JOBS = '/home/username/PythonProjects/Oboe_vs_auto-sklearn/jobs_slurm'
+    SLURM_OUTPUT = '/home/username/PythonProjects/Oboe_vs_auto-sklearn/output_slurm'
 
     RUNTIMES = [1, 2, 4, 8, 16, 32, 64, 128]
