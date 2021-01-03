@@ -18,10 +18,19 @@ from experiment_config import Config
 # Load auto-sklearn
 from autosklearn.classification import AutoSklearnClassifier
 from autosklearn.metrics import balanced_accuracy
+ASKL_ESTIMATORS = ["adaboost", "gaussian_nb", "extra_trees", "gradient_boosting", "liblinear_svc",
+                   "libsvm_svc", "random_forest", "k_nearest_neighbors", "decision_tree"]
 
 # Load Oboe
 sys.path.append(Config.OBOE)
 from auto_learner import AutoLearner as OboeLearner
+
+OBOE_ESTIMATORS = ['AB', 'GNB', 'ExtraTrees', 'GBT', 'lSVM', 'kSVM', 'RF', 'KNN', 'DT']
+default_error_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'error_matrix.csv', index_col=0)
+default_runtime_matrix = pd.read_csv(Path(Config.OBOE).expanduser() / 'defaults' / 'runtime_matrix.csv', index_col=0)
+columns = [i for i in range(default_error_matrix.shape[1]) if eval(default_error_matrix.columns[i])['algorithm'] in OBOE_ESTIMATORS]
+default_error_matrix = default_error_matrix.iloc[:, columns]
+default_runtime_matrix = default_runtime_matrix.iloc[:, columns]
 
 
 def error(y_true, y_predicted, p_type):
@@ -117,8 +126,7 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
                 clf = AutoSklearnClassifier(
                     time_left_for_this_task=args.runtime_limit,
                     include_preprocessors=["no_preprocessing"],
-                    include_estimators=["adaboost", "gaussian_nb", "extra_trees", "gradient_boosting", "liblinear_svc",
-                                        "libsvm_svc", "random_forest", "k_nearest_neighbors", "decision_tree"],
+                    include_estimators=ASKL_ESTIMATORS,
                     metric=balanced_accuracy,
                     n_jobs=args.njobs
                 )
@@ -126,12 +134,23 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
                 clf.refit(x_train, y_train)
                 time_elapsed.append(time.time() - start)  # Lau: TODO how to treat the time spent on refitting?
             elif args.framework == 'Oboe':
+                # Exclude the current dataset from the learned error/runtime matrices,
+                # assuming it was in there to begin with
+                try:
+                    error_matrix = default_error_matrix.copy().drop(args.dataset_id)
+                    runtime_matrix = default_runtime_matrix.copy().drop(args.dataset_id)
+                except ValueError:
+                    error_matrix = default_error_matrix.copy()
+                    runtime_matrix = default_runtime_matrix.copy()
+
                 start = time.time()
                 clf = OboeLearner(
                     p_type='classification',
                     runtime_limit=args.runtime_limit,
                     verbose=False,
-                    algorithms=['AB', 'GNB', 'ExtraTrees', 'GBT', 'lSVM', 'kSVM', 'RF', 'KNN', 'DT'],
+                    algorithms=OBOE_ESTIMATORS,
+                    error_matrix=error_matrix,
+                    runtime_matrix=runtime_matrix,
                     selection_method='min_variance',
                     stacking_alg='greedy',
                     n_cores=args.njobs
@@ -158,6 +177,8 @@ if __name__ == "__main__":  # note that the multiprocessing doesn't work properl
         average_training_error = training_error.mean()
         average_test_error = test_error.mean()
     except Exception as e:
+        # Most typical exception is failing to form an ensemble within the runtime limit,
+        # but we treat any exception as a failure. AutoML should be hands-off.
         print(e)
         dataset_errors.append(f'Error in dataset {args.dataset_id} with runtime limit {args.runtime_limit}.')
         dataset_errors.append(str(e))
